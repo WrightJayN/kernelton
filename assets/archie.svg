@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="580 70 250 340"><rect x="-200" width="2200" height="520" fill="#FBF3E4"/>
+  <rect x="-200" y="400" width="2200" height="120" fill="#F1E4C8"/>
+  <line x1="-200" y1="400" x2="2000" y2="400" stroke="#22304A" stroke-width="4"/><ellipse cx="110" cy="408" rx="70" ry="9" fill="#22304A" opacity="0.12"/><ellipse cx="300" cy="408" rx="70" ry="9" fill="#22304A" opacity="0.12"/><ellipse cx="480" cy="408" rx="70" ry="9" fill="#22304A" opacity="0.12"/><ellipse cx="705" cy="408" rx="70" ry="9" fill="#22304A" opacity="0.12"/><ellipse cx="912" cy="408" rx="70" ry="9" fill="#22304A" opacity="0.12"/><ellipse cx="1096" cy="408" rx="70" ry="9" fill="#22304A" opacity="0.12"/>
+  <rect x="671" y="370" width="24" height="30" rx="8" fill="#22304A"/>
+  <rect x="715" y="370" width="24" height="30" rx="8" fill="#22304A"/>
+  <rect x="650" y="228" width="110" height="150" rx="38" fill="#6BBF59" stroke="#22304A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="705" cy="186" r="54" fill="#E7B48A" stroke="#22304A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="686" cy="184" r="6.5" fill="#22304A"/>
+  <circle cx="724" cy="184" r="6.5" fill="#22304A"/>
+  <line x1="705" y1="258" x2="705" y2="376" stroke="#22304A" stroke-width="5"/>
+  <path d="M654 200 Q655 266 705 274 Q755 266 756 200 Q705 226 654 200Z" fill="#FFFFFF" stroke="#22304A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M695 236 Q705 244 715 236" fill="none" stroke="#22304A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+  <g transform="translate(643 302)"><rect x="-30" y="-36" width="60" height="76" rx="6" fill="#E8604C" stroke="#22304A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/><rect x="-18" y="-22" width="36" height="12" fill="#FBF3E4"/><line x1="-30" y1="26" x2="30" y2="26" stroke="#22304A" stroke-width="4"/></g>
+  <g transform="translate(767 308)"><circle r="16" fill="none" stroke="#22304A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/><rect x="-10" y="14" width="20" height="30" rx="4" fill="#F2B134" stroke="#22304A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/><rect x="10" y="6" width="20" height="30" rx="4" fill="#2BA6A0" stroke="#22304A" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" transform="rotate(-35 10 6)"/></g></svg>
