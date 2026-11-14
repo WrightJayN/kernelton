@@ -21,7 +21,7 @@ body.lens .rt { color: var(--amber); }
 body.lens .tx .ta, body.lens .tx .tp { display: none; }
 body.lens .tx .tr { display: inline; color: var(--amber); }
 
-#top { position: sticky; top: 0; z-index: 5; display: flex; gap: 8px; align-items: center; padding: 8px 16px; background: var(--ink); color: var(--cream); }
+#top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; display: flex; gap: 8px; align-items: center; padding: 8px 16px; background: var(--ink); color: var(--cream); }
 #crumb { flex: 1; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #stars { font-weight: 800; color: var(--amber); white-space: nowrap; }
 .tb { background: transparent; border: 2px solid var(--cream); color: var(--cream); border-radius: 10px; padding: 4px 10px; font-weight: 700; font-size: .85em; }

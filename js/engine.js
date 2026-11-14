@@ -487,7 +487,10 @@
     m.onclick = e => {
       const x = e.target.dataset.x; if (e.target === m || x === 'close') { m.hidden = true; redraw(); }
       else if (x === 'place') { m.hidden = true; placement(); }
-      else if (x === 'reset' && confirm('Erase all stars and test scores on this device?')) { S.stars = {}; S.tests = {}; S.placed = false; save(); m.hidden = true; showTitle(); }
+      else if (x === 'reset') {
+        if (e.target.dataset.sure) { S.stars = {}; S.tests = {}; S.placed = false; save(); m.hidden = true; showTitle(); }
+        else { e.target.dataset.sure = '1'; e.target.textContent = 'Press again to erase everything'; }
+      }
     };
   }
 
