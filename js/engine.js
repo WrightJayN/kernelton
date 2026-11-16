@@ -370,11 +370,36 @@
       else { el.querySelectorAll('input,button').forEach(x => { x.disabled = true; }); c.done(p.after ? tx(p.after, c.layer) : ''); }
     };
   };
+  /* ---------- Town view: illustrated scenes for the simulation puzzles ---------- */
+  const INK = '#22304A', SK = `stroke="${INK}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"`;
+  const hit = attr => `${attr} role="button" tabindex="0" class="hit"`;
+  const label = (x, y, t, o) => `<text x="${x}" y="${y}" text-anchor="${(o && o.a) || 'middle'}" font-size="${(o && o.s) || 13}" font-weight="${(o && o.w) || 400}" fill="${(o && o.f) || INK}">${t}</text>`;
+  function person(x, g, col, o) {
+    return `<g ${o.attr ? hit(o.attr) : ''} ${o.dim ? 'opacity=".45"' : ''}><ellipse cx="${x}" cy="${g + 3}" rx="24" ry="4" fill="${INK}" opacity=".12"/>
+      <rect x="${x - 19}" y="${g - 50}" width="38" height="50" rx="16" fill="${col}" ${SK}/><circle cx="${x}" cy="${g - 66}" r="20" fill="#F1D9BD" ${SK}/>
+      <circle cx="${x - 7}" cy="${g - 68}" r="2.6" fill="${INK}"/><circle cx="${x + 7}" cy="${g - 68}" r="2.6" fill="${INK}"/>
+      ${o.name ? label(x, g + 22, o.name, { w: 800, s: 15 }) : ''}${o.sub ? label(x, g + 39, o.sub, { s: 12.5 }) : ''}</g>`;
+  }
+  const building = (x, g, w, h, name, roof) => `<path d="M${x - 10} ${g - h} L${x + w / 2} ${g - h - 46} L${x + w + 10} ${g - h}Z" fill="${roof}" ${SK}/><rect x="${x}" y="${g - h}" width="${w}" height="${h}" fill="#fff" ${SK}/>${label(x + w / 2, g - h - 9, name, { w: 800, s: 12, f: '#fff' })}`;
+  const scene = (h, g, inner) => `<div class="scene"><svg viewBox="0 0 760 ${h}" role="img" aria-label="Town view"><rect width="760" height="${h}" fill="#FBF3E4"/><rect y="${g}" width="760" height="${h - g}" fill="#F1E4C8"/><line x1="0" x2="760" y1="${g}" y2="${g}" stroke="${INK}" stroke-width="3"/>${inner}</svg></div>`;
+
   PZ.sched = (el, p, c) => {
     const { segs, P } = simSched(p); let k = 0; const total = segs[segs.length - 1].e;
     const hasP = p.procs.some(x => x.p != null);
+    const town = () => {
+      const t = k < segs.length ? segs[k].s : total, used = {};
+      segs.slice(0, k).forEach(s => { used[s.id] = (used[s.id] || 0) + s.e - s.s; });
+      const left = x => x.b - (used[x.id] || 0), live = p.procs.filter(x => left(x) > 0), gone = p.procs.filter(x => left(x) <= 0);
+      const row = live.filter(x => x.a <= t).concat(live.filter(x => x.a > t));
+      let s = building(24, 170, 130, 96, 'WORKSHOP', '#E8604C') + `<rect x="64" y="96" width="50" height="74" rx="5" fill="#2BA6A0" fill-opacity=".25" ${SK}/>`;
+      s += label(89, 140, live.length ? 'free' : 'closed', { s: 12.5, w: 700 });
+      row.forEach((x, i) => { const away = x.a > t;
+        s += person(225 + i * 104, 170, away ? '#9AA3B2' : '#F2B134', { name: x.id, dim: away, attr: away ? '' : `data-id="${x.id}"`, sub: away ? `arrives at ${x.a}` : `needs ${left(x)}${x.p != null ? ' · urgency ' + x.p : ''}` }); });
+      s += label(740, 26, `time ${t}`, { a: 'end', w: 800, s: 16 }) + label(225 - 24, 26, gone.length ? `Gone home: ${gone.map(x => x.id).join(', ')}` : 'Tap a resident to send them into the workshop.', { a: 'start', s: 13 });
+      return scene(222, 170, s);
+    };
     const draw = () => {
-      el.innerHTML = `<table class="pt"><tr><th>${tx('[[Resident|Process]]', c.layer)}</th><th>${tx('[[Arrives|Arrival time]]', c.layer)}</th><th>${tx('[[Job length|Burst time]]', c.layer)}</th>${hasP ? `<th>${tx('[[Urgency|Priority]]', c.layer)} (1 is highest)</th>` : ''}</tr>
+      el.innerHTML = town() + `<table class="pt"><tr><th>${tx('[[Resident|Process]]', c.layer)}</th><th>${tx('[[Arrives|Arrival time]]', c.layer)}</th><th>${tx('[[Job length|Burst time]]', c.layer)}</th>${hasP ? `<th>${tx('[[Urgency|Priority]]', c.layer)} (1 is highest)</th>` : ''}</tr>
         ${p.procs.map(x => `<tr><td><b>${x.id}</b></td><td>${x.a}</td><td>${x.b}</td>${hasP ? `<td>${x.p}</td>` : ''}</tr>`).join('')}</table>
         <div class="gantt">${segs.slice(0, k).map(s => `<div style="flex:${s.e - s.s}">${s.id}</div>`).join('')}${k < segs.length ? `<span style="flex:${total - (k ? segs[k - 1].e : 0)}"></span>` : ''}</div>
         <div class="ticks">time: 0${segs.slice(0, k).map(s => ' → ' + s.e).join('')}</div>
@@ -382,7 +407,7 @@
     };
     draw();
     el.onclick = e => {
-      const b = e.target.closest('button[data-id]'); if (!b) return;
+      const b = e.target.closest('[data-id]'); if (!b || k >= segs.length) return;
       if (b.dataset.id === segs[k].id) {
         k++; sfx('key'); draw();
         if (k === segs.length) { const w = P.map(x => x.fin - x.a - x.b), avg = w.reduce((a, v) => a + v, 0) / w.length, ta = P.reduce((a, x) => a + x.fin - x.a, 0) / P.length;
@@ -390,22 +415,37 @@
       } else c.miss(p.algo === 'rr' ? 'Not that one. Who is at the front of the line now?' : 'Not that one. Check who has arrived and apply the rule.');
     };
   };
+
   PZ.fit = (el, p, c) => {
-    const holes = p.holes.slice(); let i = 0, last = 0, waiting = 0;
+    const holes = p.holes.slice(), orig = p.holes.slice(), placed = orig.map(() => []); let i = 0, last = 0, waiting = 0;
+    const town = () => {
+      const sc = (720 - 10 * (orig.length - 1)) / orig.reduce((a, v) => a + v, 0); let x = 20, s = '';
+      orig.forEach((o, k) => {
+        let px = x; s += `<g ${hit(`data-k="${k}"`)}>`;
+        placed[k].forEach(sz => { const w = sz * sc, heads = Math.max(1, Math.min(4, Math.floor(w / 30)));
+          s += `<rect x="${px}" y="92" width="${w}" height="58" rx="6" fill="#2BA6A0" ${SK}/>` + Array.from({ length: heads }, (_, n) => `<circle cx="${px + w * (n + 1) / (heads + 1)}" cy="84" r="10" fill="#F1D9BD" ${SK}/>`).join('') + (w > 30 ? label(px + w / 2, 126, sz + 'K', { s: 12, w: 700, f: '#fff' }) : '');
+          px += w; });
+        if (holes[k] > 0) { const w = holes[k] * sc; s += `<rect x="${px}" y="92" width="${w}" height="58" rx="6" fill="#fff" stroke="${INK}" stroke-width="3" stroke-dasharray="7 5"/>` + (w > 28 ? label(px + w / 2, 119, holes[k] + 'K', { s: 12.5, w: 800 }) + (w > 40 ? label(px + w / 2, 135, 'free', { s: 11 }) : '') : ''); }
+        s += `</g>` + label(x + o * sc / 2, 180, 'stretch ' + (k + 1), { s: 11.5 }); x += o * sc + 10;
+      });
+      s += i < p.reqs.length ? [0, 1, 2].map(n => `<circle cx="${34 + n * 22}" cy="34" r="11" fill="#F2B134" ${SK}/>`).join('') + label(104, 39, `A group of ${p.reqs[i]}K is waiting to sit together. Tap a stretch of desks.`, { a: 'start', s: 14, w: 700 }) : label(20, 39, 'Seating finished.', { a: 'start', s: 14, w: 700 });
+      return scene(196, 152, s);
+    };
     const draw = () => {
-      el.innerHTML = `<div class="holes">${holes.map((h, k) => `<button class="hole" data-k="${k}" style="flex:${Math.max(h, 40)}">${h}K<small>free</small></button>`).join('')}</div>` +
+      el.innerHTML = town() + `<div class="holes lensonly">${holes.map((h, k) => `<button class="hole" data-k="${k}" style="flex:${Math.max(h, 40)}">${h}K<small>free</small></button>`).join('')}</div>` +
         (i < p.reqs.length ? `<div class="card big">${tx(`Next [[group|process]] needs ${p.reqs[i]}K (${i + 1} of ${p.reqs.length})`, c.layer)}</div><button class="btn alt sm" data-wait="1">Nothing fits: it must wait</button>` : '');
     };
     draw();
     el.onclick = e => {
-      const b = e.target.closest('button'); if (!b || i >= p.reqs.length) return;
+      const b = e.target.closest('[data-k],[data-wait]'); if (!b || i >= p.reqs.length) return;
       const want = fitIdx(p.algo, holes, p.reqs[i], last), got = b.dataset.wait ? -1 : +b.dataset.k;
-      if (got !== want) return c.miss(want === -1 ? 'Look again: is any space big enough?' : holes[got] < p.reqs[i] ? 'That space is too small.' : 'It fits, but the rule picks a different space.');
-      if (want >= 0) { holes[want] -= p.reqs[i]; last = want; } else waiting++;
+      if (got !== want) return c.miss(want === -1 ? 'Look again: is any space big enough?' : got === -1 ? 'Something does fit. Look again.' : holes[got] < p.reqs[i] ? 'That space is too small.' : 'It fits, but the rule picks a different space.');
+      if (want >= 0) { holes[want] -= p.reqs[i]; placed[want].push(p.reqs[i]); last = want; } else waiting++;
       i++; sfx('key'); draw();
       if (i === p.reqs.length) c.done(tx(`Left over: ${holes.join('K, ')}K, a total of ${holes.reduce((a, v) => a + v, 0)}K in ${holes.filter(h => h > 0).length} pieces. ${waiting ? waiting + ' [[group|process]] left waiting.' : 'Everyone is seated.'}`, c.layer));
     };
   };
+
   PZ.pages = (el, p, c) => {
     const fr = [], marks = []; let i = 0, faults = 0, need = -1;
     const victim = () => {
@@ -413,6 +453,16 @@
       if (p.algo === 'lru') return fr.indexOf(fr.slice().sort((a, b) => a.used - b.used)[0]);
       const nx = f => { const k = p.refs.indexOf(f.pg, i + 1); return k < 0 ? Infinity : k; };
       return fr.indexOf(fr.slice().sort((a, b) => nx(b) - nx(a) || a.loaded - b.loaded)[0]);
+    };
+    const box = (x, y, n, sz, col) => `<rect x="${x}" y="${y}" width="${sz}" height="${sz}" rx="5" fill="${col}" ${SK}/>` + label(x + sz / 2, y + sz / 2 + sz * 0.17, n, { s: sz * 0.48, w: 800 });
+    const town = () => {
+      const stored = [...new Set(p.refs)].filter(n => !fr.some(f => f.pg === n)).sort((a, b) => a - b);
+      let s = person(60, 150, '#2BA6A0', {}) + `<rect x="20" y="14" width="150" height="40" rx="12" fill="#fff" ${SK}/>` + label(95, 40, i < p.refs.length ? `Box ${p.refs[i]}, please` : 'All done, thanks', { s: 14, w: 800 });
+      for (let k = 0; k < p.frames; k++) { const x = 190 + k * 98;
+        s += `<g ${need >= 0 ? hit(`data-k="${k}"`) : ''}><rect x="${x}" y="118" width="78" height="10" rx="3" fill="#C98B5E" ${SK}/><path d="M${x + 10} 128V150M${x + 68} 128V150" ${SK}/>${fr[k] ? box(x + 14, 66, fr[k].pg, 50, '#F2B134') : ''}${label(x + 39, 172, 'desk ' + k, { s: 12 })}</g>`; }
+      s += building(608, 150, 132, 86, 'WAREHOUSE', '#7A5CC2') + stored.map((n, k) => box(616 + (k % 4) * 30, 72 + Math.floor(k / 4) * 32, n, 26, '#F1E4C8')).join('');
+      s += label(190, 30, need >= 0 ? 'Every desk is full. Tap the box to send back.' : '', { a: 'start', s: 14, w: 700 }) + label(190, 50, `Warehouse trips: ${faults}`, { a: 'start', s: 13 });
+      return scene(184, 150, s);
     };
     const adv = () => {
       need = -1;
@@ -426,27 +476,39 @@
       if (i >= p.refs.length) c.done(tx(`${faults} [[warehouse trips|page faults]] in ${p.refs.length} requests.`, c.layer));
     };
     const draw = () => {
-      el.innerHTML = `<div class="refs">${p.refs.map((r, k) => `<span class="${k === i ? 'cur' : ''} ${marks[k] === 'F' ? 'f' : ''}">${r}<i>${marks[k] || ''}</i></span>`).join('')}</div>
-        <div class="frames">${Array.from({ length: p.frames }, (_, k) => `<button class="frame" data-k="${k}" ${need < 0 ? 'disabled' : ''}>${fr[k] ? fr[k].pg : '–'}<small>${tx('[[desk|frame]]', c.layer)} ${k}</small></button>`).join('')}</div>
+      el.innerHTML = `<div class="refs">${p.refs.map((r, k) => `<span class="${k === i ? 'cur' : ''} ${marks[k] === 'F' ? 'f' : ''}">${r}<i>${marks[k] || ''}</i></span>`).join('')}</div>` + town() +
+        `<div class="frames lensonly">${Array.from({ length: p.frames }, (_, k) => `<button class="frame" data-k="${k}" ${need < 0 ? 'disabled' : ''}>${fr[k] ? fr[k].pg : '–'}<small>${tx('[[desk|frame]]', c.layer)} ${k}</small></button>`).join('')}</div>
         <p>${tx(`[[Warehouse trips|Page faults]] so far: <b>${faults}</b>. F marks a [[trip|fault]], H marks a hit.`, c.layer)} ${need >= 0 ? tx(`<br><b>Box ${p.refs[i]} is needed and every [[desk|frame]] is full. Which box goes back?</b>`, c.layer) : ''}</p>`;
     };
     adv();
     el.onclick = e => {
-      const b = e.target.closest('button[data-k]'); if (!b || need < 0) return;
+      const b = e.target.closest('[data-k]'); if (!b || need < 0) return;
       if (+b.dataset.k !== need) return c.miss({ fifo: 'Not that one. Which box has been on a desk the longest?', lru: 'Not that one. Which box has gone unused the longest?', opt: 'Not that one. Which box will not be needed for the longest time?' }[p.algo]);
       fr[need] = { pg: p.refs[i], loaded: i, used: i }; marks[i] = 'F'; faults++; i++; sfx('key'); adv();
     };
   };
+
   PZ.disk = (el, p, c) => {
-    const plan = diskPlan(p), max = p.max || 199; let k = 0, head = p.head;
-    const sorted = p.reqs.slice().sort((a, b) => a - b);
-    el.innerHTML = `<div class="track"><div class="head" style="left:${100 * head / max}%"></div>${p.reqs.map(r => `<button data-r="${r}" style="left:${100 * r / max}%;bottom:${8 + 28 * (sorted.indexOf(r) % 3)}px">${r}</button>`).join('')}</div>
-      <div class="row" style="justify-content:space-between;font-family:var(--mono);font-size:.8em"><span>0</span><span>${tx('[[cart|head]]', c.layer)} starts at ${p.head}${p.algo !== 'fcfs' && p.algo !== 'sstf' ? ', moving up' : ''}</span><span>${max}</span></div>
-      <p class="visited">${tx('Visited:', c.layer)} </p>`;
+    const plan = diskPlan(p), max = p.max || 199, done = new Set(); let k = 0, head = p.head;
+    const sorted = p.reqs.slice().sort((a, b) => a - b), X = r => 30 + 700 * r / max;
+    const town = () => {
+      let s = `<line x1="30" x2="730" y1="132" y2="132" stroke="${INK}" stroke-width="2" stroke-dasharray="3 6"/>`;
+      p.reqs.forEach(r => { const y = 104 - 32 * (sorted.indexOf(r) % 3), ok = done.has(r);
+        s += `<g ${ok ? '' : hit(`data-r="${r}"`)}><line x1="${X(r)}" x2="${X(r)}" y1="${y + 24}" y2="132" stroke="${INK}" stroke-width="1.5"/><rect x="${X(r) - 19}" y="${y}" width="38" height="24" rx="5" fill="${ok ? '#6BBF59' : '#F2B134'}" ${SK}/>${label(X(r), y + 17, r, { s: 12.5, w: 800 })}</g>`; });
+      s += `<g><rect x="${X(head) - 22}" y="140" width="44" height="18" rx="5" fill="#E8604C" ${SK}/><circle cx="${X(head) - 12}" cy="162" r="6" fill="${INK}"/><circle cx="${X(head) + 12}" cy="162" r="6" fill="${INK}"/>${label(X(head), 154, head, { s: 11.5, w: 800, f: '#fff' })}</g>`;
+      s += label(30, 190, 'shelf 0', { a: 'start', s: 12 }) + label(730, 190, 'shelf ' + max, { a: 'end', s: 12 }) + label(380, 190, k < plan.order.length ? 'Tap the shelf the cart visits next.' : 'Every shelf visited.', { s: 13, w: 700 });
+      return scene(200, 170, s);
+    };
+    const draw = () => {
+      el.innerHTML = town() + `<div class="lensonly"><div class="track"><div class="head" style="left:${100 * head / max}%"></div>${p.reqs.map(r => `<button data-r="${r}" ${done.has(r) ? 'disabled' : ''} style="left:${100 * r / max}%;bottom:${8 + 28 * (sorted.indexOf(r) % 3)}px">${r}</button>`).join('')}</div>
+        <div class="row" style="justify-content:space-between;font-family:var(--mono);font-size:.8em"><span>0</span><span>${max}</span></div></div>
+        <p>${tx('The [[cart|head]]', c.layer)} starts at ${p.head}${p.algo !== 'fcfs' && p.algo !== 'sstf' ? ', moving up' : ''}. Visited: ${plan.order.slice(0, k).join(' → ')}</p>`;
+    };
+    draw();
     el.onclick = e => {
-      const b = e.target.closest('button[data-r]'); if (!b || b.disabled) return;
+      const b = e.target.closest('[data-r]'); if (!b || k >= plan.order.length || done.has(+b.dataset.r)) return;
       if (+b.dataset.r !== plan.order[k]) return c.miss('The rule sends the cart somewhere else next.');
-      b.disabled = true; head = plan.order[k]; k++; $('.head', el).style.left = (100 * head / max) + '%'; $('.visited', el).append(head + (k < plan.order.length ? ' → ' : '')); sfx('key');
+      head = plan.order[k]; done.add(head); k++; sfx('key'); draw();
       if (k === plan.order.length) c.done(tx(`Route: ${plan.path.join(' → ')}. Total [[cart travel|head movement]]: ${plan.total} [[shelves|tracks]].`, c.layer));
     };
   };
@@ -504,6 +566,8 @@
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT') return;
     if (e.key === 'l' || e.key === 'L') $('#lensBtn').click();
+    const act = document.activeElement;
+    if ((e.key === ' ' || e.key === 'Enter') && act && act.getAttribute('role') === 'button') { e.preventDefault(); act.dispatchEvent(new MouseEvent('click', { bubbles: true })); return; }
     if (e.key === ' ' || e.key === 'Enter') { const b = $('#adv') || ($('#cont') && !$('#cont').hidden && $('#cont')) || $('[data-go="n"]'); if (b && document.activeElement.tagName !== 'BUTTON') { e.preventDefault(); b.click(); } }
   });
   document.addEventListener('click', () => { if (S.set.music && !musicTimer) music(true); }, { once: false });
