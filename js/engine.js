@@ -208,7 +208,7 @@
     redraw = puzzle;
     screen(crumb(), `<div class="phase">${boss ? 'Boss' : 'Puzzle'}${list.length > 1 ? ` · part ${run.stage + 1} of ${list.length}` : ''}</div>
       ${boss ? `<div class="grid-meter"><img id="gl" src="assets/gridlock.svg" alt="Gridlock"><span id="glt"></span></div>` : ''}
-      <div class="panel"><p class="say">${tx(p.say || '', lv.L)}</p><div id="pz"></div><div class="fb"></div></div>
+      <div class="panel"><p class="say">${tx(p.say || '', lv.L)}</p><div id="scn"></div><div id="pz"></div><div class="fb"></div></div>
       <div class="row end">${boss ? '' : '<button class="btn alt sm" data-go="hint">Hint</button>'}<button class="btn alt sm" data-go="know">I know this: go to the checkpoint</button><button class="btn" data-go="cont" id="cont" hidden>Continue</button></div>`, {
       hint: () => { run.hints++; const h = (api && api.hint && api.hint()) || p.hint || 'Read the prompt again, one piece at a time.'; fb(tx('Hint: ' + h, lv.L), ''); },
       know: () => { run.skipped = true; checkpoint(); },
@@ -218,8 +218,11 @@
     const meter = () => { if (!boss) return; const left = 5 - run.bossMiss; $('#glt').textContent = `Gridlock grows with every mistake. ${left} left.`; $('#gl').style.transform = `scale(${1 + run.bossMiss * 0.22})`; };
     if (boss && run.stage === 0 && run.bossMiss == null) run.bossMiss = 0;
     meter();
+    const sc = ((window.KT_SCENES || {})[lv.id] || [])[run.stage];
+    const drawScene = n => { if (sc && window.KT_SCENE) $('#scn').innerHTML = window.KT_SCENE(sc, n); };
+    drawScene(sc && sc.done ? 99 : 0);
     const api = PZ[p.type]($('#pz'), p, {
-      layer: lv.L,
+      layer: lv.L, step: n => { if ($('#scn')) drawScene(n); },
       miss: msg => {
         run.mistakes++; sfx('bad'); fb(msg || 'Not quite. Try again.', 'bad');
         const el = $('#pz'); el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
@@ -321,7 +324,7 @@
       const b = e.target.closest('button'); if (!b || b.disabled) return;
       if (b.dataset.l != null) { el.querySelectorAll('[data-l]').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); sel = b; }
       else if (b.dataset.r != null && sel) {
-        if (b.dataset.r === sel.dataset.l) { b.disabled = sel.disabled = true; b.classList.add('ok'); sel.classList.add('ok'); sel.classList.remove('sel'); sel = null; sfx('key'); if (--left === 0) c.done(); }
+        if (b.dataset.r === sel.dataset.l) { b.disabled = sel.disabled = true; b.classList.add('ok'); sel.classList.add('ok'); sel.classList.remove('sel'); sel = null; sfx('key'); left--; if (c.step) c.step(p.pairs.length - left); if (left === 0) c.done(); }
         else c.miss('Not a match. Try another.');
       }
     };
@@ -331,7 +334,7 @@
     el.innerHTML = `<ol class="seq"></ol><div class="pool">${items.map(o => `<button class="chip" data-i="${o.i}">${tx(o.t, c.layer)}</button>`).join('')}</div>`;
     el.onclick = e => {
       const b = e.target.closest('button[data-i]'); if (!b || b.disabled) return;
-      if (+b.dataset.i === n) { b.disabled = true; $('.seq', el).insertAdjacentHTML('beforeend', `<li>${b.innerHTML}</li>`); n++; sfx('key'); if (n === p.items.length) c.done(); }
+      if (+b.dataset.i === n) { b.disabled = true; $('.seq', el).insertAdjacentHTML('beforeend', `<li>${b.innerHTML}</li>`); n++; sfx('key'); if (c.step) c.step(n); if (n === p.items.length) c.done(); }
       else c.miss('That one does not come next.');
     };
   };
@@ -344,7 +347,7 @@
       const b = e.target.closest('button'); if (!b || b.disabled) return;
       if (b.dataset.k != null) {
         if (+b.dataset.k === p.steps[i].c) {
-          el.querySelectorAll('.opt').forEach(x => { x.disabled = true; }); b.classList.add('ok'); sfx('key');
+          el.querySelectorAll('.opt').forEach(x => { x.disabled = true; }); b.classList.add('ok'); sfx('key'); if (c.step) c.step(i + 1);
           if (i + 1 < p.steps.length) $('.why', el).innerHTML = tx(p.steps[i].w || 'Correct.', c.layer) + ' <button class="btn sm" data-next="1">Next</button>';
           else c.done(tx(p.steps[i].w || 'Solved.', c.layer));
         } else { b.disabled = true; b.classList.add('bad'); c.miss('Not that one.'); }
@@ -357,7 +360,7 @@
     show();
     el.onclick = e => {
       const b = e.target.closest('button[data-k]'); if (!b) return;
-      if (+b.dataset.k === items[i][1]) { sfx('key'); if (++i < items.length) show(); else { el.querySelectorAll('button').forEach(x => { x.disabled = true; }); c.done(); } }
+      if (+b.dataset.k === items[i][1]) { sfx('key'); i++; if (c.step) c.step(i); if (i < items.length) show(); else { el.querySelectorAll('button').forEach(x => { x.disabled = true; }); c.done(); } }
       else { b.classList.add('bad'); c.miss('That belongs in a different group.'); }
     };
   };
